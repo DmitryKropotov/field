@@ -8,30 +8,30 @@ import java.util.TreeSet;
 public class Field {
     int n;
     int m;
-    private static final int MAX_N = 2^20, MAX_M = 2^14;
+    private static final int MAX_N = (int)Math.pow(2, 20), MAX_M = (int)Math.pow(2, 14);
 
     public Field(int n, int m) {
-        if(n<1 || n>MAX_N && m<1 || m>MAX_M) {
-            throw new IllegalArgumentException(n+" should be between 1 and "+MAX_N+", "+m+" should be between 1 and "+MAX_M);
+        if((n<1 || n>MAX_N) && (m<1 || m>MAX_M)) {
+            throw new IllegalArgumentException("n should be between 1 and "+MAX_N+", m should be between 1 and "+MAX_M);
         }
         if(n<1 || n>MAX_N) {
-            throw new IllegalArgumentException(n+" should be between 1 and "+MAX_N);
+            throw new IllegalArgumentException("n should be between 1 and "+MAX_N);
         }
         if(m<1 || m>MAX_M) {
-            throw new IllegalArgumentException(m+" should be between 1 and "+MAX_M);
+            throw new IllegalArgumentException("m should be between 1 and "+MAX_M);
         }
         this.n = n;
         this.m = m;
     }
 
-    TreeSet<Area> areas = new TreeSet<>();
+    private TreeSet<Area> areas = new TreeSet<>();
 
     /*
        coordinates - numbers x1_1, y1_1, x2_1, y2_1, x1_2, y1_2, x2_2, y2_2, ..., xn_1, yn_1, xn_1, yn_2
        The amount of numbers should be multiple by four. If it is not, last 1, 2 or 3 numbers will be ignored
      */
     public void addAreas(int... coordinates) {
-        for (int i = 0; coordinates.length - i <= 4; i=i+4) {
+        for (int i = 0; coordinates.length - i >= 4; i=i+4) {
             int[] leftTopCoordinates = new int[]{coordinates[i], coordinates[i+1]};
             int[] rightBottomCoordinates = new int[]{coordinates[i+2], coordinates[i+3]};
             Area areaToAdd = new Area(leftTopCoordinates, rightBottomCoordinates);
@@ -48,43 +48,31 @@ public class Field {
         areas.remove(new Area(leftTopCoordinates, rightBottomCoordinates));
     }
 
-    public Set<Area> findContainedAndCrossedAreas(int[] leftTopCoordinates, int[] rightBottomCoordinates) {
+    public Set<Area> getContainedAndCrossedAreas(int[] leftTopCoordinates, int[] rightBottomCoordinates) {
         checkCorrectValues(leftTopCoordinates, rightBottomCoordinates);
         Area leftBoundaryArea = new Area(new int[]{0, 0}, new int[]{leftTopCoordinates[0] + 1, leftTopCoordinates[1] + 1});
         Area rightBoundaryArea = new Area(new int[]{rightBottomCoordinates[0] - 1, rightBottomCoordinates[1] - 1}, new int[]{n, m});
-        return areas.subSet(areas.floor(rightBoundaryArea), true, areas.ceiling(leftBoundaryArea), true);
+        return areas.subSet(areas.ceiling(leftBoundaryArea), true, areas.floor(rightBoundaryArea), true);
     }
 
     public void deleteContainedAndCrossedAreas(int[] leftTopCoordinates, int[] rightBottomCoordinates) {
-        Set<Area> areasToDelete = findContainedAndCrossedAreas(leftTopCoordinates, rightBottomCoordinates);
+        Set<Area> areasToDelete = getContainedAndCrossedAreas(leftTopCoordinates, rightBottomCoordinates);
         areas.removeAll(areasToDelete);
     }
 
-    public Set<Area> findContainedAreas(int[] leftTopCoordinates, int[] rightBottomCoordinates) {
+    public Set<Area> getContainedAreas(int[] leftTopCoordinates, int[] rightBottomCoordinates) {
         checkCorrectValues(leftTopCoordinates, rightBottomCoordinates);
         Area leftBoundaryArea = new Area(leftTopCoordinates, new int[]{leftTopCoordinates[0] + 1, leftTopCoordinates[1] + 1});
-        Area rightBoundaryArea = new Area(leftTopCoordinates, rightBottomCoordinates);
-        Set<Area> ContainedAndCrossedAreas = areas.subSet(areas.floor(rightBoundaryArea), true, areas.ceiling(leftBoundaryArea), true);
-        ContainedAndCrossedAreas.removeIf(area -> area.leftTopCoordinates[1]<leftTopCoordinates[1] ||
+        Area rightBoundaryArea = new Area(new int[]{rightBottomCoordinates[0] - 1, rightBottomCoordinates[1] - 1}, rightBottomCoordinates);
+        Set<Area> ContainedAndCrossedAreas = areas.subSet(areas.ceiling(leftBoundaryArea), true, areas.floor(rightBoundaryArea), true);
+        ContainedAndCrossedAreas.removeIf(area -> area.leftTopCoordinates[1]>rightBottomCoordinates[1] ||
                 area.rightBottomCoordinates[0]>rightBottomCoordinates[0] || area.rightBottomCoordinates[1]>rightBottomCoordinates[1]);
         return ContainedAndCrossedAreas;
     }
 
     public void deleteContainedAreas(int[] leftTopCoordinates, int[] rightBottomCoordinates) {
-        Set<Area> areasTodelete = findContainedAreas(leftTopCoordinates, rightBottomCoordinates);
-        areas.removeAll(areasTodelete);
-    }
-
-    public Optional<Area> getRoot() {
-        return Optional.ofNullable(areas.first());
-    }
-
-    public Optional<Area> getLeft(Area area) {
-        return Optional.ofNullable(areas.lower(area));
-    }
-
-    public Optional<Area> getRight(Area area) {
-        return Optional.ofNullable(areas.higher(area));
+        Set<Area> areasToDelete = getContainedAreas(leftTopCoordinates, rightBottomCoordinates);
+        areas.removeAll(areasToDelete);
     }
 
 
@@ -101,7 +89,7 @@ public class Field {
         }
     }
 
-    private class Area implements Comparable<Area> {
+    public class Area implements Comparable<Area> {
         int[] leftTopCoordinates;
         int[] rightBottomCoordinates;
 
@@ -143,6 +131,24 @@ public class Field {
                         (leftTopCoordinates[1] + area.leftTopCoordinates[1])^2) +
                         Math.sqrt((rightBottomCoordinates[0] - area.rightBottomCoordinates[0])^2 +
                                 (rightBottomCoordinates[1] - area.rightBottomCoordinates[1])^2));
+        }
+        @Override
+        public String toString() {
+            String result = "";
+            for (int i = 0; i < leftTopCoordinates.length; i++) {
+                result += leftTopCoordinates[i];
+                if(i!=leftTopCoordinates.length - 1) {
+                    result += ", ";
+                }
+            }
+            result += " ";
+            for (int i = 0; i < rightBottomCoordinates.length; i++) {
+                result += rightBottomCoordinates[i];
+                if(i!=leftTopCoordinates.length - 1) {
+                    result += ", ";
+                }
+            }
+            return result;
         }
     }
 }
