@@ -6,8 +6,8 @@ import java.util.Set;
 import java.util.TreeSet;
 
 public class Field {
-    int n;
-    int m;
+    private int n;
+    private int m;
     private static final int MAX_N = (int)Math.pow(2, 20), MAX_M = (int)Math.pow(2, 14);
 
     public Field(int n, int m) {
@@ -27,15 +27,22 @@ public class Field {
     private TreeSet<Area> areas = new TreeSet<>();
 
     /*
-       coordinates - numbers x1_1, y1_1, x2_1, y2_1, x1_2, y1_2, x2_2, y2_2, ..., xn_1, yn_1, xn_1, yn_2
+       coordinates - numbers x1_1, y1_1, x2_1, y2_1, x1_2, y1_2, x2_2, y2_2, ..., xn_1, yn_1, xn_2, yn_2
        The amount of numbers should be multiple by four. If it is not, last 1, 2 or 3 numbers will be ignored
+       Four coordinates xm_1, ym_1, xm_2, ym_2 should satisfy relation xm_1<xm_2, ym_1<ym_2, otherwise they
+       will be ignored
      */
     public void addAreas(int... coordinates) {
         for (int i = 0; coordinates.length - i >= 4; i=i+4) {
-            int[] leftTopCoordinates = new int[]{coordinates[i], coordinates[i+1]};
-            int[] rightBottomCoordinates = new int[]{coordinates[i+2], coordinates[i+3]};
-            Area areaToAdd = new Area(leftTopCoordinates, rightBottomCoordinates);
-            areas.add(areaToAdd);
+            try {
+                int[] leftTopCoordinates = new int[]{coordinates[i], coordinates[i + 1]};
+                int[] rightBottomCoordinates = new int[]{coordinates[i + 2], coordinates[i + 3]};
+                checkCorrectValues(leftTopCoordinates, rightBottomCoordinates);
+                Area areaToAdd = new Area(leftTopCoordinates, rightBottomCoordinates);
+                areas.add(areaToAdd);
+            } catch (IllegalArgumentException e) {
+                System.out.println("Exception " + e + " in method addArea");
+            }
         }
     }
 
@@ -44,8 +51,19 @@ public class Field {
     }
 
     public void deleteArea(int[] leftTopCoordinates, int[] rightBottomCoordinates) {
-        checkCorrectValues(leftTopCoordinates, rightBottomCoordinates);
-        areas.remove(new Area(leftTopCoordinates, rightBottomCoordinates));
+         areas.remove(new Area(leftTopCoordinates, rightBottomCoordinates));
+    }
+
+    public void deleteContainedAreas(int[] leftTopCoordinates, int[] rightBottomCoordinates) {
+        deleteArea(leftTopCoordinates, rightBottomCoordinates);
+        Set<Area> areasToDelete = getContainedAreas(leftTopCoordinates, rightBottomCoordinates);
+        areas.removeAll(areasToDelete);
+    }
+
+    public void deleteContainedAndCrossedAreas(int[] leftTopCoordinates, int[] rightBottomCoordinates) {
+        deleteArea(leftTopCoordinates, rightBottomCoordinates);
+        Set<Area> areasToDelete = getContainedAndCrossedAreas(leftTopCoordinates, rightBottomCoordinates);
+        areas.removeAll(areasToDelete);
     }
 
     public Set<Area> getContainedAndCrossedAreas(int[] leftTopCoordinates, int[] rightBottomCoordinates) {
@@ -53,11 +71,6 @@ public class Field {
         Area leftBoundaryArea = new Area(new int[]{0, 0}, new int[]{leftTopCoordinates[0] + 1, leftTopCoordinates[1] + 1});
         Area rightBoundaryArea = new Area(new int[]{rightBottomCoordinates[0] - 1, rightBottomCoordinates[1] - 1}, new int[]{n, m});
         return areas.subSet(areas.ceiling(leftBoundaryArea), true, areas.floor(rightBoundaryArea), true);
-    }
-
-    public void deleteContainedAndCrossedAreas(int[] leftTopCoordinates, int[] rightBottomCoordinates) {
-        Set<Area> areasToDelete = getContainedAndCrossedAreas(leftTopCoordinates, rightBottomCoordinates);
-        areas.removeAll(areasToDelete);
     }
 
     public Set<Area> getContainedAreas(int[] leftTopCoordinates, int[] rightBottomCoordinates) {
@@ -68,11 +81,6 @@ public class Field {
         ContainedAndCrossedAreas.removeIf(area -> area.leftTopCoordinates[1]>rightBottomCoordinates[1] ||
                 area.rightBottomCoordinates[0]>rightBottomCoordinates[0] || area.rightBottomCoordinates[1]>rightBottomCoordinates[1]);
         return ContainedAndCrossedAreas;
-    }
-
-    public void deleteContainedAreas(int[] leftTopCoordinates, int[] rightBottomCoordinates) {
-        Set<Area> areasToDelete = getContainedAreas(leftTopCoordinates, rightBottomCoordinates);
-        areas.removeAll(areasToDelete);
     }
 
 
@@ -116,8 +124,7 @@ public class Field {
                     Arrays.equals(rightBottomCoordinates, area.rightBottomCoordinates)) {
                 return 0;
             }
-            //case if left top vertex of one area is righter and lower than right bottom of another one or
-            //right bottom vertex of one area is lefter and higher than left top of another one.
+            //case if left top vertex of one area is righter and lower than right bottom of another one
             //It means they don't overlap and Integer.MAX_VALUE or -Integer.MAX_VALUE(so they will be maximally far from each other) is returned.
             if (!(leftTopCoordinates[0] - area.rightBottomCoordinates[0] < 0 &&
                     rightBottomCoordinates[1] - area.rightBottomCoordinates[1] < 0) ||
@@ -127,11 +134,12 @@ public class Field {
                         (leftTopCoordinates[0] - area.leftTopCoordinates[0]));
             }
             return (int)((Math.abs(leftTopCoordinates[0] - area.leftTopCoordinates[0]))/(leftTopCoordinates[0] - area.leftTopCoordinates[0])*
-                    Math.sqrt((leftTopCoordinates[0] + area.leftTopCoordinates[0])^2 +
-                        (leftTopCoordinates[1] + area.leftTopCoordinates[1])^2) +
+                    Math.sqrt((leftTopCoordinates[0] - area.leftTopCoordinates[0])^2 +
+                        (leftTopCoordinates[1] - area.leftTopCoordinates[1])^2) +
                         Math.sqrt((rightBottomCoordinates[0] - area.rightBottomCoordinates[0])^2 +
                                 (rightBottomCoordinates[1] - area.rightBottomCoordinates[1])^2));
         }
+
         @Override
         public String toString() {
             String result = "";
