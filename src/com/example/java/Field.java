@@ -1,7 +1,7 @@
 package com.example.java;
 
 import java.util.Arrays;
-import java.util.Optional;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -33,17 +33,17 @@ public class Field {
        will be ignored
      */
     public void addAreas(int... coordinates) {
+        Set<Area> areasToAdd = new HashSet<>();
         for (int i = 0; coordinates.length - i >= 4; i=i+4) {
             try {
                 int[] leftTopCoordinates = new int[]{coordinates[i], coordinates[i + 1]};
                 int[] rightBottomCoordinates = new int[]{coordinates[i + 2], coordinates[i + 3]};
-                checkCorrectValues(leftTopCoordinates, rightBottomCoordinates);
-                Area areaToAdd = new Area(leftTopCoordinates, rightBottomCoordinates);
-                areas.add(areaToAdd);
+                areasToAdd.add(new Area(leftTopCoordinates, rightBottomCoordinates));
             } catch (IllegalArgumentException e) {
                 System.out.println("Exception " + e + " in method addArea");
             }
         }
+        areas.addAll(areasToAdd);
     }
 
     public void deleteArea(Area areaToDelete) {
@@ -52,6 +52,24 @@ public class Field {
 
     public void deleteArea(int[] leftTopCoordinates, int[] rightBottomCoordinates) {
          areas.remove(new Area(leftTopCoordinates, rightBottomCoordinates));
+    }
+
+    /*
+      coordinates - numbers x1_1, y1_1, x2_1, y2_1, x1_2, y1_2, x2_2, y2_2, ..., xn_1, yn_1, xn_2, yn_2
+      The amount of numbers should be multiple by four. If it is not, last 1, 2 or 3 numbers will be ignore
+    */
+    public void deleteAreas(int... coordinates) {
+        Set<Area> areasToDelete = new HashSet<>();
+        for (int i = 0; coordinates.length - i >= 4; i=i+4) {
+            try {
+                int[] leftTopCoordinates = new int[]{coordinates[i], coordinates[i + 1]};
+                int[] rightBottomCoordinates = new int[]{coordinates[i + 2], coordinates[i + 3]};
+                areasToDelete.add(new Area(leftTopCoordinates, rightBottomCoordinates));
+            } catch (IllegalArgumentException e) {
+                System.out.println("Exception " + e + " in method addArea");
+            }
+        }
+        areas.removeAll(areasToDelete);
     }
 
     public void deleteContainedAreas(int[] leftTopCoordinates, int[] rightBottomCoordinates) {
@@ -64,6 +82,10 @@ public class Field {
         deleteArea(leftTopCoordinates, rightBottomCoordinates);
         Set<Area> areasToDelete = getContainedAndCrossedAreas(leftTopCoordinates, rightBottomCoordinates);
         areas.removeAll(areasToDelete);
+    }
+
+    public TreeSet<Area> getAllAreas() {
+        return areas;
     }
 
     public Set<Area> getContainedAndCrossedAreas(int[] leftTopCoordinates, int[] rightBottomCoordinates) {
@@ -124,20 +146,27 @@ public class Field {
                     Arrays.equals(rightBottomCoordinates, area.rightBottomCoordinates)) {
                 return 0;
             }
+
             //case if left top vertex of one area is righter and lower than right bottom of another one
             //It means they don't overlap and Integer.MAX_VALUE or -Integer.MAX_VALUE(so they will be maximally far from each other) is returned.
-            if (!(leftTopCoordinates[0] - area.rightBottomCoordinates[0] < 0 &&
-                    rightBottomCoordinates[1] - area.rightBottomCoordinates[1] < 0) ||
-                    !(rightBottomCoordinates[0] - area.leftTopCoordinates[0] > 0 &&
-                            rightBottomCoordinates[1] - area.leftTopCoordinates[1] < 0)) {
+            if (leftTopCoordinates[0] >= area.rightBottomCoordinates[0] || leftTopCoordinates[1] >= area.rightBottomCoordinates[1] ||
+                    rightBottomCoordinates[0] <= area.leftTopCoordinates[0] || rightBottomCoordinates[1] <= area.leftTopCoordinates[1]) {
                 return Integer.MAX_VALUE * (Math.abs(leftTopCoordinates[0] - area.leftTopCoordinates[0])/
                         (leftTopCoordinates[0] - area.leftTopCoordinates[0]));
             }
-            return (int)((Math.abs(leftTopCoordinates[0] - area.leftTopCoordinates[0]))/(leftTopCoordinates[0] - area.leftTopCoordinates[0])*
-                    Math.sqrt((leftTopCoordinates[0] - area.leftTopCoordinates[0])^2 +
-                        (leftTopCoordinates[1] - area.leftTopCoordinates[1])^2) +
-                        Math.sqrt((rightBottomCoordinates[0] - area.rightBottomCoordinates[0])^2 +
-                                (rightBottomCoordinates[1] - area.rightBottomCoordinates[1])^2));
+            final int absDistance = (int)(Math.sqrt((leftTopCoordinates[0] - area.leftTopCoordinates[0])^2 +
+                    (leftTopCoordinates[1] - area.leftTopCoordinates[1])^2) +
+                    Math.sqrt((rightBottomCoordinates[0] - area.rightBottomCoordinates[0])^2 +
+                            (rightBottomCoordinates[1] - area.rightBottomCoordinates[1])^2));
+            if (leftTopCoordinates[0] != area.leftTopCoordinates[0]) {
+                return (Math.abs(leftTopCoordinates[0] - area.leftTopCoordinates[0]))/(leftTopCoordinates[0] - area.leftTopCoordinates[0]) * absDistance;
+            } else if (leftTopCoordinates[1] != area.leftTopCoordinates[1]) {
+                return (Math.abs(leftTopCoordinates[1] - area.leftTopCoordinates[1]))/(leftTopCoordinates[1] - area.leftTopCoordinates[1]) * absDistance;
+            } else if (rightBottomCoordinates[0] != area.rightBottomCoordinates[0]) {
+                return (Math.abs(rightBottomCoordinates[0] - area.rightBottomCoordinates[0]))/(rightBottomCoordinates[0] - area.rightBottomCoordinates[0]) * absDistance;
+            } else {
+                return (Math.abs(rightBottomCoordinates[1] - area.rightBottomCoordinates[1]))/(rightBottomCoordinates[1] - area.rightBottomCoordinates[1]) * absDistance;
+            }
         }
 
         @Override
@@ -149,7 +178,7 @@ public class Field {
                     result += ", ";
                 }
             }
-            result += " ";
+            result += ", ";
             for (int i = 0; i < rightBottomCoordinates.length; i++) {
                 result += rightBottomCoordinates[i];
                 if(i!=leftTopCoordinates.length - 1) {
