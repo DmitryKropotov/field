@@ -92,17 +92,20 @@ public class Field {
         checkCorrectValues(leftTopCoordinates, rightBottomCoordinates);
         Area leftBoundaryArea = new Area(new int[]{0, 0}, new int[]{leftTopCoordinates[0] + 1, leftTopCoordinates[1] + 1});
         Area rightBoundaryArea = new Area(new int[]{rightBottomCoordinates[0] - 1, rightBottomCoordinates[1] - 1}, new int[]{n, m});
-        return areas.subSet(areas.ceiling(leftBoundaryArea), true, areas.floor(rightBoundaryArea), true);
+        Set<Area> ContainedAndCrossedAreas = areas.subSet(leftBoundaryArea, true, rightBoundaryArea, true);
+        ContainedAndCrossedAreas.removeIf(area -> area.rightBottomCoordinates[0]<leftTopCoordinates[0] || area.rightBottomCoordinates[1]<leftTopCoordinates[1] ||
+           area.leftTopCoordinates[0]>rightBottomCoordinates[0] || area.leftTopCoordinates[1]>rightBottomCoordinates[1]);
+        return ContainedAndCrossedAreas;
     }
 
     public Set<Area> getContainedAreas(int[] leftTopCoordinates, int[] rightBottomCoordinates) {
         checkCorrectValues(leftTopCoordinates, rightBottomCoordinates);
         Area leftBoundaryArea = new Area(leftTopCoordinates, new int[]{leftTopCoordinates[0] + 1, leftTopCoordinates[1] + 1});
         Area rightBoundaryArea = new Area(new int[]{rightBottomCoordinates[0] - 1, rightBottomCoordinates[1] - 1}, rightBottomCoordinates);
-        Set<Area> ContainedAndCrossedAreas = areas.subSet(areas.ceiling(leftBoundaryArea), true, areas.floor(rightBoundaryArea), true);
-        ContainedAndCrossedAreas.removeIf(area -> area.leftTopCoordinates[1]>rightBottomCoordinates[1] ||
+        Set<Area> ContainedAreas = areas.subSet(areas.ceiling(leftBoundaryArea), true, areas.floor(rightBoundaryArea), true);
+        ContainedAreas.removeIf(area -> area.leftTopCoordinates[1]<leftTopCoordinates[1] ||
                 area.rightBottomCoordinates[0]>rightBottomCoordinates[0] || area.rightBottomCoordinates[1]>rightBottomCoordinates[1]);
-        return ContainedAndCrossedAreas;
+        return ContainedAreas;
     }
 
 
@@ -142,31 +145,10 @@ public class Field {
 
         @Override
         public int compareTo(Area area) {
-            if (Arrays.equals(leftTopCoordinates, area.leftTopCoordinates) &&
-                    Arrays.equals(rightBottomCoordinates, area.rightBottomCoordinates)) {
-                return 0;
-            }
-
-            //case if left top vertex of one area is righter and lower than right bottom of another one
-            //It means they don't overlap and Integer.MAX_VALUE or -Integer.MAX_VALUE(so they will be maximally far from each other) is returned.
-            if (leftTopCoordinates[0] >= area.rightBottomCoordinates[0] || leftTopCoordinates[1] >= area.rightBottomCoordinates[1] ||
-                    rightBottomCoordinates[0] <= area.leftTopCoordinates[0] || rightBottomCoordinates[1] <= area.leftTopCoordinates[1]) {
-                return Integer.MAX_VALUE * (Math.abs(leftTopCoordinates[0] - area.leftTopCoordinates[0])/
-                        (leftTopCoordinates[0] - area.leftTopCoordinates[0]));
-            }
-            final int absDistance = (int)(Math.sqrt((leftTopCoordinates[0] - area.leftTopCoordinates[0])^2 +
-                    (leftTopCoordinates[1] - area.leftTopCoordinates[1])^2) +
-                    Math.sqrt((rightBottomCoordinates[0] - area.rightBottomCoordinates[0])^2 +
-                            (rightBottomCoordinates[1] - area.rightBottomCoordinates[1])^2));
-            if (leftTopCoordinates[0] != area.leftTopCoordinates[0]) {
-                return (Math.abs(leftTopCoordinates[0] - area.leftTopCoordinates[0]))/(leftTopCoordinates[0] - area.leftTopCoordinates[0]) * absDistance;
-            } else if (leftTopCoordinates[1] != area.leftTopCoordinates[1]) {
-                return (Math.abs(leftTopCoordinates[1] - area.leftTopCoordinates[1]))/(leftTopCoordinates[1] - area.leftTopCoordinates[1]) * absDistance;
-            } else if (rightBottomCoordinates[0] != area.rightBottomCoordinates[0]) {
-                return (Math.abs(rightBottomCoordinates[0] - area.rightBottomCoordinates[0]))/(rightBottomCoordinates[0] - area.rightBottomCoordinates[0]) * absDistance;
-            } else {
-                return (Math.abs(rightBottomCoordinates[1] - area.rightBottomCoordinates[1]))/(rightBottomCoordinates[1] - area.rightBottomCoordinates[1]) * absDistance;
-            }
+            return leftTopCoordinates[0] > area.leftTopCoordinates[0]? 1: leftTopCoordinates[0] < area.leftTopCoordinates[0]? -1:
+            leftTopCoordinates[1] > area.leftTopCoordinates[1]? 1: leftTopCoordinates[1] < area.leftTopCoordinates[1]? -1:
+            rightBottomCoordinates[0] > area.rightBottomCoordinates[0]? 1: rightBottomCoordinates[0] < area.rightBottomCoordinates[0]? -1:
+            rightBottomCoordinates[1] > area.rightBottomCoordinates[1]? 1: rightBottomCoordinates[0] > area.rightBottomCoordinates[0]? -1: 0;
         }
 
         @Override
